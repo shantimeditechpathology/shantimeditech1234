@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User full name" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User role" },
+        "phoneNumber": { "type": "string", "description": "User phone number" },
+        "address": { "type": "string", "description": "User address" },
+        "referralCode": { "type": "string", "description": "Unique referral code" },
+        "referredBy": { "type": "string", "description": "UID of the referrer" },
+        "referralEarnings": { "type": "number", "description": "Total referral earnings" },
+        "withdrawableBalance": { "type": "number", "description": "Balance available for withdrawal" },
+        "healthScore": { "type": "number", "description": "User's overall health score" },
+        "healthTrends": { "type": "array", "items": { "$ref": "HealthTrend" }, "description": "Historical health data" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "HealthTrend": {
+      "title": "HealthTrend",
+      "description": "Single data point for health tracking",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "description": "Month or date of the reading" },
+        "glucose": { "type": "number", "description": "Blood glucose level" },
+        "cholesterol": { "type": "number", "description": "Cholesterol level" },
+        "vitaminD": { "type": "number", "description": "Vitamin D level" }
+      }
+    },
+    "FamilyMember": {
+      "title": "FamilyMember",
+      "description": "Linked family member for a user",
+      "type": "object",
+      "properties": {
+        "userUid": { "type": "string", "description": "UID of the primary user" },
+        "name": { "type": "string", "description": "Name of the family member" },
+        "relation": { "type": "string", "description": "Relationship to the user" }
+      },
+      "required": ["userUid", "name", "relation"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Referral tracking record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Referral ID" },
+        "referrerId": { "type": "string", "description": "UID of the user who referred" },
+        "refereeId": { "type": "string", "description": "UID of the new user" },
+        "status": { "type": "string", "enum": ["pending", "completed"], "description": "Referral status" },
+        "amount": { "type": "number", "description": "Referral reward amount" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Referral timestamp" }
+      },
+      "required": ["referrerId", "refereeId", "status", "amount"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Diagnostic test or package booking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Booking ID" },
+        "userUid": { "type": "string", "description": "UID of the user who booked" },
+        "testIds": { "type": "array", "items": { "type": "string" }, "description": "List of test IDs" },
+        "packageIds": { "type": "array", "items": { "type": "string" }, "description": "List of package IDs" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"], "description": "Booking status" },
+        "date": { "type": "string", "format": "date", "description": "Scheduled date" },
+        "time": { "type": "string", "description": "Scheduled time slot" },
+        "totalAmount": { "type": "number", "description": "Total price" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Booking timestamp" }
+      },
+      "required": ["userUid", "status", "date", "totalAmount"]
+    },
+    "Package": {
+      "title": "Package",
+      "description": "Health checkup package",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Package ID" },
+        "name": { "type": "string", "description": "Package name" },
+        "description": { "type": "string", "description": "Package description" },
+        "price": { "type": "number", "description": "Package price" },
+        "tests": { "type": "array", "items": { "type": "string" }, "description": "List of tests included" },
+        "category": { "type": "string", "description": "Package category" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "price"]
+    },
+    "Test": {
+      "title": "Test",
+      "description": "Individual diagnostic test",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Test ID" },
+        "name": { "type": "string", "description": "Test name" },
+        "description": { "type": "string", "description": "Test description" },
+        "price": { "type": "number", "description": "Test price" },
+        "category": { "type": "string", "description": "Test category" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "price"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Diagnostic report for a booking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Report ID" },
+        "bookingId": { "type": "string", "description": "Associated booking ID" },
+        "userUid": { "type": "string", "description": "UID of the user" },
+        "fileUrl": { "type": "string", "description": "URL to the report PDF" },
+        "status": { "type": "string", "enum": ["pending", "ready"], "description": "Report status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Report generation timestamp" }
+      },
+      "required": ["bookingId", "userUid", "status"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global website configuration and content",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Settings ID (e.g., 'general', 'homepage')" },
+        "data": { "type": "object", "description": "Key-value pairs for settings" }
+      },
+      "required": ["id", "data"]
+    },
+    "KnowledgePost": {
+      "title": "KnowledgePost",
+      "description": "Health article or blog post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Post ID" },
+        "title": { "type": "string", "description": "Post title" },
+        "excerpt": { "type": "string", "description": "Short summary" },
+        "content": { "type": "string", "description": "Full article content" },
+        "author": { "type": "string", "description": "Author name" },
+        "date": { "type": "string", "description": "Publication date" },
+        "category": { "type": "string", "description": "Post category" },
+        "image": { "type": "string", "description": "Cover image URL" },
+        "readTime": { "type": "string", "description": "Estimated read time" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["title", "content", "author", "category"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/bookings/{bookingId}": { "schema": "Booking", "description": "Test bookings" },
+    "/packages/{packageId}": { "schema": "Package", "description": "Health packages" },
+    "/tests/{testId}": { "schema": "Test", "description": "Diagnostic tests" },
+    "/reports/{reportId}": { "schema": "Report", "description": "Patient reports" },
+    "/referrals/{referralId}": { "schema": "Referral", "description": "Referral records" },
+    "/settings/{settingsId}": { "schema": "SiteSettings", "description": "Website content and configuration" },
+    "/knowledge_posts/{postId}": { "schema": "KnowledgePost", "description": "Health articles" },
+    "/familyMembers/{memberId}": { "schema": "FamilyMember", "description": "Family members linked to users" }
+  }
+}

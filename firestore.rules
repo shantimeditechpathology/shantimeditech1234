@@ -1,0 +1,164 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required, email format)
+    //   - displayName: string (optional)
+    //   - role: string (required, 'admin' or 'user')
+    //   - phoneNumber: string (optional)
+    //   - address: string (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: bookings
+    // Document ID: {bookingId}
+    // Fields:
+    //   - userUid: string (required)
+    //   - testIds: list (optional)
+    //   - packageIds: list (optional)
+    //   - status: string (required, 'pending', 'confirmed', 'completed', 'cancelled')
+    //   - date: string (required, date format)
+    //   - time: string (optional)
+    //   - totalAmount: number (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: packages
+    // Document ID: {packageId}
+    // Fields:
+    //   - name: string (required)
+    //   - description: string (optional)
+    //   - price: number (required)
+    //   - tests: list (optional)
+    //   - category: string (optional)
+    //
+    // Collection: tests
+    // Document ID: {testId}
+    // Fields:
+    //   - name: string (required)
+    //   - description: string (optional)
+    //   - price: number (required)
+    //   - category: string (optional)
+    //
+    // Collection: reports
+    // Document ID: {reportId}
+    // Fields:
+    //   - bookingId: string (required)
+    //   - userUid: string (required)
+    //   - fileUrl: string (optional)
+    //   - status: string (required, 'pending', 'ready')
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: referrals
+    // Document ID: {referralId}
+    // Fields:
+    //   - referrerId: string (required)
+    //   - refereeId: string (required)
+    //   - status: string (required, 'pending', 'completed')
+    //   - amount: number (required)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "vipinks2000@gmail.com" || 
+         request.auth.token.email == "shantimeditechpathology12@gmail.com" ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function isDelivery() {
+      return isAuthenticated() && 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'delivery');
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() > 0 &&
+             (data.email is string && (data.email == "" || isValidEmail(data.email))) &&
+             data.role in ['user', 'admin', 'delivery'] &&
+             (data.displayName is string || !('displayName' in data)) &&
+             (data.phoneNumber is string || !('phoneNumber' in data));
+    }
+
+    // Collection Rules
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(uid) && isValidUser(request.resource.data) &&
+                    (request.resource.data.role == 'user' || 
+                     request.resource.data.role == 'delivery' || 
+                     isAdmin());
+      allow update: if isAdmin() || 
+                    (isOwner(uid) && 
+                     isValidUser(request.resource.data) && 
+                     (request.resource.data.role == resource.data.role || isAdmin()));
+    }
+
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.refereeId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.referrerId;
+      allow update, delete: if isAdmin();
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userUid || request.auth.uid == resource.data.assignedTo || isAdmin());
+      allow create: if isAuthenticated() && (request.auth.uid == request.resource.data.userUid || isAdmin());
+      allow update: if isAdmin() || (isAuthenticated() && (request.auth.uid == resource.data.userUid || request.auth.uid == resource.data.assignedTo));
+      allow delete: if isAdmin();
+    }
+
+    match /packages/{packageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /tests/{testId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userUid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /settings/{settingsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /knowledge_posts/{postId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /familyMembers/{memberId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userUid || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userUid;
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.userUid || isAdmin());
+      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userUid);
+    }
+  }
+}
